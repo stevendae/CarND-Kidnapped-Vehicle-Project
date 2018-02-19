@@ -17,6 +17,8 @@
 
 #include "particle_filter.h"
 
+#define zero = 0.00001
+
 using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
@@ -24,6 +26,24 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
+
+	this -> num_particles = 100;
+	this -> particles.resize(num_particles);
+	this -> weights.resize(num_particles);
+	default_random_engine gen;
+
+	normal_distribution<double> dist_x(x, std[0]);
+	normal_distribution<double> dist_y(y, std[1]);
+	normal_distribution<double> dist_theta(theta, std[2]);
+
+	for (auto &p:particles){
+		p.x = dist_x(gen);
+		p.y = dist_y(gen);
+		p.theta = dist_theta(gen);
+		p.weight = 1.0;
+	}
+
+	this -> is_initialized = true;
 
 }
 
@@ -33,6 +53,29 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
+	default_random_engine gen;
+
+	normal_distribution<double> norm_x(0, std_pos[0]);
+	normal_distribution<double> norm_y(0, std_pos[1]);
+	normal_distribution<double> norm_theta(0, std_pos[2]);
+
+	if (fabs(yaw_rate) < zero) {}
+
+	for (auto &p:particles){
+		if (fabs(yaw_rate) < zero) {
+			p.x += velocity * delta_t * cos(p.theta);
+			p.y += velocity * delta_t * sin(p.theta);
+		}
+		else {
+			p.x += (velocity / yaw_rate) * (sin(p.theta + yaw_rate*delta_t) - sin(p.theta));
+			p.y += (velocity / yaw_rate) * (cos(p.theta) - cost(p.theta + yaw_rate*delta_t));
+			p.theta += yaw_rate*delta_t;
+		}
+
+		p.x += norm_x(gen);
+		p.y += norm_y(gen);
+		p.theta += norm_theta(gen);
+	}
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
@@ -40,6 +83,8 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+
+	
 
 }
 
